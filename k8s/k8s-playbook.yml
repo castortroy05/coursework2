@@ -1,0 +1,66 @@
+
+- name: A playbook to install Kubectl and Minikube on a VM
+  hosts: localhost
+  user: ubuntu
+  become: yes
+
+  tasks:
+  - name: 1. Update APT Package Manager
+    apt:
+      update_cache: yes
+
+
+  - name: 2. Install dependency packages
+    apt:
+      name={{ item }}
+    with_items:
+      - apt-transport-https
+
+  - name: 3. Get APT Key
+    shell:
+      cmd: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+
+  - name: 4. Add APT Repository
+    apt_repository:
+      repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+      state: present
+      filename: kubernetes.list
+
+  - name: 5. Update Package Manager
+    apt:
+      update_cache: yes
+
+  - name: 6. Install Kubectl packages
+    apt:
+      name={{ item }}
+    with_items:
+      - kubectl 
+    
+
+  - name: 7. Create bash Script for Minikube install
+    copy:
+      dest: "/home/ubuntu/coursework2/k8s/minikube.sh"
+      content: |
+        #! /bin/bash
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        chmod a+x minikube
+        sudo mv minikube /usr/local/bin/  
+
+  - name: 8. Change File permissions so that it can be executed
+    file:
+      path: ./minikube.sh
+      owner: ubuntu
+      group: ubuntu
+      mode: '777'
+
+  - name: 9. Execute Script
+    shell:
+      cmd: ./minikube.sh
+
+  - name: 10. Fix Docker Permissions
+    shell:
+      cmd: sudo chmod 666 /var/run/docker.sock
+
+  - name: 11. Start MiniKube
+    command: minikube start 
+    become_user: ubuntu

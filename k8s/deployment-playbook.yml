@@ -1,0 +1,19 @@
+
+- name: A playbook to deploy my application to Kubernetes on a VM
+  hosts: localhost
+  become_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: 1. Deploy application to kubernetes
+    shell:
+      cmd: kubectl create deployment coursework2 --image=castortroy05/cw2:1.0
+
+  - name: 2. Create service for application
+    command: kubectl expose deployment/coursework2 --type="NodePort" --port 8080 --name node-port-service
+
+  - name: 3. Scale Deployment for rolling updates
+    command: kubectl scale deployments/coursework2 --replicas=4
+
+
+

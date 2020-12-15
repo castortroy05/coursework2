@@ -1,0 +1,77 @@
+
+- name: A playbook to install Docker on a VM
+  hosts: localhost
+  user: ubuntu
+  become: yes
+
+  tasks:
+  - name: 1. Update APT Package Manager
+    apt:
+      update_cache: yes
+
+
+  - name: 2. Uninstall the unscd package
+    apt:
+      update_cache: yes
+      name: unscd
+      state: absent
+
+
+
+  - name: 3. Install dependency packages
+    apt:
+      name={{ item }}
+    with_items:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg-agent
+      - software-properties-common 
+
+  - name: 4. Get APT Key
+    shell:
+      cmd: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+  - name: 5. Confirm Fingerprint
+    shell:
+      cmd: sudo apt-key fingerprint 0EBFCD88
+
+  - name: 6. Add APT Repository
+    apt_repository:
+      repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+
+  - name: 7. Update Package Manager
+    apt:
+      update_cache: yes
+
+  - name: 8. Install Docker packages
+    apt:
+      name={{ item }}
+    with_items:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    
+
+  - name: 9. Create bash Script for the Permissions Commands
+    copy:
+      dest: "/home/ubuntu/coursework2/docker/docker.sh"
+      content: |
+        #! /bin/bash
+        groupadd docker
+        usermod -aG docker $USER
+        addgroup --system docker
+        adduser $USER docker
+        newgrp docker
+
+  - name: 10. Change File permissions so that it can be executed
+    file:
+      path: ./docker.sh
+      owner: ubuntu
+      group: ubuntu
+      mode: '777'
+
+  - name: 11. Execute Script
+    shell:
+      cmd: ./docker.sh
+

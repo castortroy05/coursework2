@@ -1,0 +1,45 @@
+
+- name: A playbook to install Jenkins and Sonarqube on a VM
+  hosts: localhost
+  user: ubuntu
+  become: yes
+
+  tasks:
+  - name: 1. Update APT Package Manager
+    apt:
+      update_cache: yes
+
+  - name: 2. Fix Docker Permissions
+    shell:
+      cmd: sudo chmod 666 /var/run/docker.sock
+
+  - name: 3. Install Jenkins
+    shell: docker run --rm -d -u root --name jenkins-container -p 8080:8080 -v ~/jenkins-data:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME":/home jenkinsci/blueocean
+    become_user: ubuntu
+
+  - name: 4. Install Sonarqube
+    shell: docker run -d --rm --name sonarqube-container -p 9000:9000 sonarqube
+    become_user: ubuntu
+
+  - name: 5. Create bash Script for the Scanner Commands
+    copy:
+      dest: "/home/ubuntu/coursework2/sonarqube.sh"
+      content: |
+        #! /bin/bash
+        docker exec jenkins-container mkdir /var/jenkins_home/sonarqube
+        docker exec jenkins-container wget -O /var/jenkins_home/sonarqube/sonar-scanner-cli-3.3.0.1492-linux.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.3.0.1492-linux.zip
+        docker exec jenkins-container unzip -o /var/jenkins_home/sonarqube/sonar-scanner-cli-3.3.0.1492-linux.zip 
+        docker exec jenkins-container rm /var/jenkins_home/sonarqube/sonar-scanner-3.3.0.1492-linux/jre/bin/java
+
+  - name: 6. Change File permissions so that it can be executed
+    file:
+      path: ./sonarqube.sh
+      owner: ubuntu
+      group: ubuntu
+      mode: '777'
+
+  - name: 7. Execute Script
+    shell:
+      cmd: ./sonarqube.sh
+
+    
